@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR, Geist_Mono } from "next/font/google";
+import { SITE } from "@/lib/site";
 import "./globals.css";
 
 const notoSansKr = Noto_Sans_KR({
@@ -15,10 +16,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "블루마켓 - 쿠팡 추천 상품",
-    template: "%s | 블루마켓",
+    default: `${SITE.nameKo} ${SITE.name} - 쿠팡 추천 상품`,
+    template: `%s | ${SITE.nameKo}`,
   },
-  description: "엄선한 쿠팡 인기 상품을 한곳에서 비교하고 구매하세요.",
+  description: SITE.description,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

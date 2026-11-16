@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { Search, ShoppingBag } from "lucide-react";
 import { getCategories } from "@/lib/queries/shop";
-
-export const SITE_NAME = "블루마켓";
+import { SITE } from "@/lib/site";
 
 export function SearchForm({ defaultValue = "", className = "" }: { defaultValue?: string; className?: string }) {
   return (
@@ -35,9 +34,10 @@ export async function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 bg-primary text-primary-foreground shadow-sm">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 sm:flex-nowrap">
-        <Link href="/" className="flex shrink-0 items-center gap-1.5 text-lg font-bold">
+        <Link href="/" className="flex shrink-0 items-center gap-1.5" aria-label={`${SITE.nameKo} 홈`}>
           <ShoppingBag className="size-5" aria-hidden />
-          {SITE_NAME}
+          <span className="text-xl font-bold tracking-wide">{SITE.name}</span>
+          <span className="text-xs text-brand-100">{SITE.nameKo}</span>
         </Link>
         <SearchForm className="order-last w-full sm:order-none sm:max-w-md sm:flex-1" />
       </div>
