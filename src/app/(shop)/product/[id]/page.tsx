@@ -5,12 +5,14 @@ import { Suspense } from "react";
 import { ChevronRight } from "lucide-react";
 import { AffiliateDisclosure } from "@/components/shop/affiliate-disclosure";
 import { BuyButton } from "@/components/shop/buy-button";
+import { JsonLd } from "@/components/shop/json-ld";
 import { Price } from "@/components/shop/price";
 import { ProductGrid } from "@/components/shop/product-card";
 import { ProductImage } from "@/components/shop/product-image";
 import { RocketBadge } from "@/components/shop/rocket-badge";
 import { ProductGridSkeleton } from "@/components/shop/skeletons";
 import { getPrerenderProductIds, getProduct, getRelatedProducts } from "@/lib/queries/shop";
+import { OG_DEFAULTS, SITE, siteUrl } from "@/lib/site";
 
 function parseId(raw: string) {
   const id = Number(raw);
@@ -37,18 +39,49 @@ export async function generateMetadata({ params }: PageProps<"/product/[id]">): 
   if (!product) return { title: "상품을 찾을 수 없습니다" };
   return {
     title: product.title,
-    description: `${product.title} - 쿠팡 최저가와 할인 정보를 확인하세요.`,
+    description: `${product.title} - 쿠팡 가격과 할인 정보를 확인하세요.`,
     alternates: { canonical: `/product/${product.id}` },
-    openGraph: { title: product.title, images: [product.imageUrl] },
+    openGraph: { ...OG_DEFAULTS, title: product.title, url: `/product/${product.id}`, images: [product.imageUrl] },
   };
 }
 
 async function ProductDetail({ params }: Pick<PageProps<"/product/[id]">, "params">) {
   const { id } = await params;
   const product = await loadProduct(id);
+  const base = siteUrl();
+  const url = `${base}/product/${product.id}`;
 
   return (
     <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: product.title,
+          image: [product.imageUrl],
+          url,
+          ...(product.categoryName ? { category: product.categoryName } : {}),
+          offers: {
+            "@type": "Offer",
+            url,
+            price: product.price,
+            priceCurrency: "KRW",
+          },
+        }}
+      />
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: SITE.nameKo, item: `${base}/` },
+            ...(product.categoryName && product.categorySlug
+              ? [{ "@type": "ListItem", position: 2, name: product.categoryName, item: `${base}/category/${product.categorySlug}` }]
+              : []),
+            { "@type": "ListItem", position: product.categoryName ? 3 : 2, name: product.title, item: url },
+          ],
+        }}
+      />
       {product.categoryName && product.categorySlug && (
         <nav aria-label="경로" className="mb-4 flex items-center gap-1 text-sm text-muted-foreground">
           <Link href="/" className="hover:text-primary">

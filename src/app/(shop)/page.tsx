@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { BannerCarousel } from "@/components/shop/banner-carousel";
+import { JsonLd } from "@/components/shop/json-ld";
 import { ProductGrid } from "@/components/shop/product-card";
 import { getActiveBanners, getFeaturedProducts, getHomeSections } from "@/lib/queries/shop";
+import { SITE, siteUrl } from "@/lib/site";
 
 export default async function HomePage() {
   const [banners, featured, sections] = await Promise.all([
@@ -13,6 +15,20 @@ export default async function HomePage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-6">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: SITE.nameKo,
+          alternateName: SITE.name,
+          url: `${siteUrl()}/`,
+          potentialAction: {
+            "@type": "SearchAction",
+            target: `${siteUrl()}/search?q={search_term_string}`,
+            "query-input": "required name=search_term_string",
+          },
+        }}
+      />
       <BannerCarousel banners={banners} />
 
       {featured.length > 0 && (

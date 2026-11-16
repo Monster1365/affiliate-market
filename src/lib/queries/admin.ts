@@ -98,3 +98,85 @@ export async function getAdminCategories() {
 export async function getAdminBanners() {
   return db.select().from(banners).orderBy(asc(banners.sortOrder), desc(banners.id));
 }
+
+// ── 대시보드 통계 ─────────────────────────────────────────
+
+export const STAT_RANGES = [7, 30, 90] as const;
+export type StatRange = (typeof STAT_RANGES)[number];
+
+export function parseRange(value: unknown): StatRange {
+  const n = Number(value);
+  return (STAT_RANGES as readonly number[]).includes(n) ? (n as StatRange) : 30;
+}
+
+/**
+ * 한국 시간 기준 일별 클릭 수 (클릭 없는 날은 0으로 채움) + 직전 같은 기간 합계.
+ * 봇 클릭은 /go에서 이미 기록하지 않는다.
+ */
+export async function getDailyClicks(days: StatRange) {
+  const rows = await db.execute<{ day: string; clicks: number }>(sql`
+    with days as (
+      select generate_series(
+        (now() at time zone 'Asia/Seoul')::date - ${days - 1}::int,
+        (now() at time zone 'Asia/Seoul')::date,
+        interval '1 day'
+      )::date as day
+    )
+    select to_char(d.day, 'YYYY-MM-DD') as day, count(c.id)::int as clicks
+    from days d
+    left join ${clickLogs} c on (c.clicked_at at time zone 'Asia/Seoul')::date = d.day
+    group by d.day
+    order by d.day
+  `);
+
+  const [prev] = await db
+    .select({ clicks: count() })
+    .from(clickLogs)
+    .where(
+      sql`(${clickLogs.clickedAt} at time zone 'Asia/Seoul')::date
+        between (now() at time zone 'Asia/Seoul')::date - ${days * 2 - 1}::int
+            and (now() at time zone 'Asia/Seoul')::date - ${days}::int`,
+    );
+
+  const series = rows.rows.map((r) => ({ day: r.day, clicks: Number(r.clicks) }));
+  return {
+    series,
+    total: series.reduce((sum, d) => sum + d.clicks, 0),
+    previousTotal: prev.clicks,
+  };
+}
+
+/** 기간 내 클릭이 많은 상품 */
+export async function getTopClickedProducts(days: StatRange, limit = 10) {
+  return db
+    .select({
+      id: products.id,
+      title: products.title,
+      imageUrl: products.imageUrl,
+      isVisible: products.isVisible,
+      categoryName: categories.name,
+      clicks: count(clickLogs.id),
+    })
+    .from(clickLogs)
+    .innerJoin(products, eq(clickLogs.productId, products.id))
+    .leftJoin(categories, eq(products.categoryId, categories.id))
+    .where(sql`${clickLogs.clickedAt} >= now() - make_interval(days => ${days}::int)`)
+    .groupBy(products.id, categories.name)
+    .orderBy(desc(count(clickLogs.id)), asc(products.id))
+    .limit(limit);
+}
+
+/** 기간 내 카테고리별 클릭 수 */
+export async function getCategoryClicks(days: StatRange) {
+  return db
+    .select({
+      name: sql<string>`coalesce(${categories.name}, '미분류')`,
+      clicks: count(clickLogs.id),
+    })
+    .from(clickLogs)
+    .innerJoin(products, eq(clickLogs.productId, products.id))
+    .leftJoin(categories, eq(products.categoryId, categories.id))
+    .where(sql`${clickLogs.clickedAt} >= now() - make_interval(days => ${days}::int)`)
+    .groupBy(categories.name)
+    .orderBy(desc(count(clickLogs.id)));
+}

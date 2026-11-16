@@ -17,7 +17,7 @@
 - 이메일/비밀번호 로그인
 - 상품·카테고리·배너 관리, 노출/추천 설정
 - 쿠팡 파트너스 API로 상품 검색 후 가져오기 + 직접 등록
-- 클릭 통계 대시보드
+- 대시보드: 기간별(7/30/90일) 일별 클릭 차트, 직전 기간 대비 증감, 많이 클릭된 상품, 카테고리별 클릭
 
 ## 기술 스택
 
@@ -53,6 +53,7 @@ cp .env.example .env.local
 | `AUTH_TRUST_HOST` | 로컬에서 `npm start`(프로덕션 모드)로 실행할 때만 `true`. Vercel에서는 필요 없음 |
 | `COUPANG_ACCESS_KEY` | 쿠팡 파트너스 API Access Key (없으면 수동 등록만 사용) |
 | `COUPANG_SECRET_KEY` | 쿠팡 파트너스 API Secret Key |
+| `SITE_URL` | (선택) 사이트 주소. 직접 연결한 도메인이 있으면 `https://도메인` 형태로. 없으면 Vercel 운영 도메인을 자동으로 사용 |
 | `COUPANG_SUB_ID` | (선택) 쿠팡 파트너스에 등록한 채널 ID. 넣으면 채널별 실적을 구분할 수 있음 |
 
 ### 3. DB 준비
@@ -160,6 +161,13 @@ scripts/                 시드·관리자 생성 스크립트
 - 키가 없으면 가져오기 화면에 설정 안내가 나오고, 직접 등록만 사용할 수 있습니다.
 - 테스트용으로 `COUPANG_API_BASE_URL`을 지정하면 다른 주소(모의 서버 등)로 요청을 보냅니다. 운영에서는 설정하지 마세요.
 
+### SEO
+- `/sitemap.xml`: 홈, 카테고리, 노출 중인 상품 (1시간마다 갱신)
+- `/robots.txt`: 관리자·클릭 추적(`/go`)·API·검색 결과는 크롤링 제외
+- 상품 상세에 구조화 데이터(JSON-LD: Product, BreadcrumbList), 홈에 WebSite
+- 사이트 주소는 `src/lib/site.ts`의 `siteUrl()`에서 정합니다. 직접 연결한 도메인이 있으면 `SITE_URL`을 넣으세요.
+- 공유 미리보기: 상품은 상품 이미지, 그 외는 `src/app/opengraph-image.tsx`
+
 ### 쿠팡 파트너스 정책
 - 모든 페이지 하단과 상품 상세에 수수료 고지문이 표시됩니다 (`src/components/shop/affiliate-disclosure.tsx`).
 - 구매 링크에는 `rel="sponsored nofollow"`가 붙습니다.
@@ -197,5 +205,5 @@ DELETE FROM products WHERE coupang_product_id LIKE 'sample-%';
 - [x] 4단계: 관리자 로그인
 - [x] 5단계: 관리자 상품·카테고리·배너 관리
 - [x] 6단계: 쿠팡 파트너스 API 연동 (실제 키로는 아직 검증 전)
-- [ ] 7단계: 대시보드, SEO (sitemap, JSON-LD)
+- [x] 7단계: 대시보드, SEO (sitemap, JSON-LD)
 - [ ] 8단계: 배포 마무리

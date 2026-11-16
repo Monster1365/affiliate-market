@@ -6,6 +6,7 @@ import { Pagination } from "@/components/shop/pagination";
 import { ProductGrid } from "@/components/shop/product-card";
 import { PageSkeleton } from "@/components/shop/skeletons";
 import { SortTabs } from "@/components/shop/sort-tabs";
+import { OG_DEFAULTS } from "@/lib/site";
 import {
   getCategories,
   getCategoryBySlug,
@@ -28,6 +29,8 @@ export async function generateMetadata({ params }: PageProps<"/category/[slug]">
     title: category.name,
     description: `쿠팡 ${category.name} 인기 상품을 가격·할인율순으로 비교해 보세요.`,
     alternates: { canonical: `/category/${category.slug}` },
+    // 페이지에서 openGraph를 지정하면 사이트 기본 미리보기 이미지가 빠지므로 직접 지정
+    openGraph: { ...OG_DEFAULTS, title: category.name, url: `/category/${category.slug}`, images: ["/opengraph-image"] },
   };
 }
 

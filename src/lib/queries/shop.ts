@@ -260,3 +260,22 @@ export async function getActiveBanners() {
     .where(eq(banners.isActive, true))
     .orderBy(asc(banners.sortOrder), desc(banners.id));
 }
+
+// ── sitemap ────────────────────────────────────────────
+
+export async function getSitemapEntries() {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(CACHE_TAGS.products, CACHE_TAGS.categories);
+
+  const [cats, prods] = await Promise.all([
+    db.select({ slug: categories.slug, updatedAt: categories.updatedAt }).from(categories),
+    db
+      .select({ id: products.id, updatedAt: products.updatedAt })
+      .from(products)
+      .where(eq(products.isVisible, true))
+      .orderBy(desc(products.updatedAt))
+      .limit(45_000), // sitemap 한 파일 최대 50,000개
+  ]);
+  return { categories: cats, products: prods };
+}

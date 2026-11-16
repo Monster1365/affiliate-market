@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR, Geist_Mono } from "next/font/google";
-import { SITE } from "@/lib/site";
+import { OG_DEFAULTS, SITE, siteUrl } from "@/lib/site";
 import "./globals.css";
 
 const notoSansKr = Noto_Sans_KR({
@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
+  applicationName: `${SITE.name} ${SITE.nameKo}`,
+  openGraph: OG_DEFAULTS,
   title: {
     default: `${SITE.nameKo} ${SITE.name} - 쿠팡 추천 상품`,
     template: `%s | ${SITE.nameKo}`,
