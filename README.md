@@ -129,7 +129,9 @@ scripts/                 시드·관리자 생성 스크립트
 
 ### 캐싱 (Next.js 16 Cache Components)
 사용자 페이지의 조회 함수(`src/lib/queries/shop.ts`)는 `'use cache'`로 캐시되고 `products`·`categories`·`banners` 태그가 붙어 있습니다.
-관리자가 데이터를 바꾸면 Server Action에서 해당 태그를 무효화(`updateTag`)해 사용자 페이지에 바로 반영합니다.
+관리자가 데이터를 바꾸면 Server Action(`src/lib/actions/`)에서 해당 태그를 무효화(`updateTag`)해 사용자 페이지에 바로 반영합니다.
+카테고리 이름은 상품 상세에도 나오므로 카테고리를 바꾸면 `categories`와 `products` 태그를 둘 다 무효화합니다.
+관리자 페이지의 조회 함수(`src/lib/queries/admin.ts`)는 항상 최신 데이터를 보도록 캐시하지 않습니다.
 조회 함수를 새로 만들 때도 같은 태그를 붙여야 관리자 수정이 반영됩니다.
 
 ### 관리자 권한 확인 (중요)
@@ -182,7 +184,7 @@ DELETE FROM products WHERE coupang_product_id LIKE 'sample-%';
 - [x] 2단계: DB 스키마, 마이그레이션, 시드
 - [x] 3단계: 사용자 페이지, 클릭 추적
 - [x] 4단계: 관리자 로그인
-- [ ] 5단계: 관리자 상품·카테고리·배너 관리
+- [x] 5단계: 관리자 상품·카테고리·배너 관리
 - [ ] 6단계: 쿠팡 파트너스 API 연동
 - [ ] 7단계: 대시보드, SEO (sitemap, JSON-LD)
 - [ ] 8단계: 배포 마무리

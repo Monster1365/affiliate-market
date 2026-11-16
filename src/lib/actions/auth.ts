@@ -3,7 +3,7 @@
 import { AuthError } from "next-auth";
 import { signIn, signOut } from "@/lib/auth";
 
-export type LoginState = { error?: string } | undefined;
+export type LoginState = { error?: string; email?: string } | undefined;
 
 /**
  * 로그인 후 이동할 경로. Auth.js는 callbackUrl을 전체 주소로 넘기므로 경로만 꺼내 쓴다.
@@ -31,7 +31,12 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   } catch (error) {
     // 성공 시 signIn이 던지는 redirect는 그대로 전파해야 한다
     if (error instanceof AuthError) {
-      return { error: "이메일 또는 비밀번호가 올바르지 않습니다." };
+      // 폼이 초기화되어도 이메일은 다시 채워지도록 돌려준다 (비밀번호는 돌려주지 않음)
+      const email = formData.get("email");
+      return {
+        error: "이메일 또는 비밀번호가 올바르지 않습니다.",
+        email: typeof email === "string" ? email.slice(0, 255) : "",
+      };
     }
     throw error;
   }
