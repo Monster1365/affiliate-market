@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { ProductForm } from "@/components/admin/product-form";
 import { deleteProduct } from "@/lib/actions/products";
 import { requireAdmin } from "@/lib/admin/session";
+import { isCoupangConfigured } from "@/lib/coupang";
 import { getAdminCategories, getAdminProduct } from "@/lib/queries/admin";
 
 export const metadata: Metadata = { title: "상품 수정" };
@@ -33,7 +34,7 @@ export default async function EditProductPage({ params }: PageProps<"/admin/prod
           message={`'${product.title}' 상품을 삭제할까요?\n클릭 기록도 함께 삭제됩니다.`}
         />
       </PageHeader>
-      <ProductForm product={product} categories={categories} />
+      <ProductForm product={product} categories={categories} coupangEnabled={isCoupangConfigured()} />
     </div>
   );
 }

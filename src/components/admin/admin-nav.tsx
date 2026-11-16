@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { href: "/admin", label: "대시보드", icon: LayoutDashboard, ready: true },
   { href: "/admin/products", label: "상품 관리", icon: Package, ready: true },
-  { href: "/admin/products/import", label: "쿠팡 상품 가져오기", icon: Download, ready: false },
+  { href: "/admin/products/import", label: "쿠팡 상품 가져오기", icon: Download, ready: true },
   { href: "/admin/categories", label: "카테고리", icon: FolderTree, ready: true },
   { href: "/admin/banners", label: "배너", icon: ImageIcon, ready: true },
 ];

@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState, useTransition } from "react";
 import { ImageOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { convertToAffiliateLink } from "@/lib/actions/coupang";
 import { saveProduct } from "@/lib/actions/products";
 import type { Product } from "@/lib/db/schema";
 import { discountRateOf, type FormState } from "@/lib/admin/validation";
@@ -16,7 +17,43 @@ import { FieldError, FormMessage, SubmitButton, invalidProps, selectClass } from
 type Props = {
   product?: Product;
   categories: { id: number; name: string }[];
+  /** 쿠팡 API 키가 있으면 '제휴 링크로 변환' 버튼 표시 */
+  coupangEnabled?: boolean;
 };
+
+/** 쿠팡 상품 주소 → 파트너스 제휴 링크 변환 (딥링크 API 1회 호출) */
+function DeeplinkButton({ inputRef }: { inputRef: React.RefObject<HTMLInputElement | null> }) {
+  const [pending, startTransition] = useTransition();
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() =>
+          startTransition(async () => {
+            const res = await convertToAffiliateLink(inputRef.current?.value ?? "");
+            if (res.url && inputRef.current) {
+              inputRef.current.value = res.url;
+              setMessage({ ok: true, text: "제휴 링크로 바꿨습니다." });
+            } else {
+              setMessage({ ok: false, text: res.error ?? "변환하지 못했습니다." });
+            }
+          })
+        }
+        className="rounded-md bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground hover:bg-brand-100 disabled:opacity-50"
+      >
+        {pending ? "변환 중..." : "쿠팡 주소 → 제휴 링크로 변환"}
+      </button>
+      {message && (
+        <span role={message.ok ? "status" : "alert"} className={cn("text-xs", message.ok ? "text-primary" : "text-destructive")}>
+          {message.text}
+        </span>
+      )}
+    </div>
+  );
+}
 
 function isHttpUrl(value: string) {
   try {
@@ -26,7 +63,8 @@ function isHttpUrl(value: string) {
   }
 }
 
-export function ProductForm({ product, categories }: Props) {
+export function ProductForm({ product, categories, coupangEnabled }: Props) {
+  const affiliateRef = useRef<HTMLInputElement>(null);
   const [state, action] = useActionState<FormState, FormData>(saveProduct, {});
 
   // 저장 실패 시에는 방금 입력한 값, 아니면 기존 상품 값
@@ -54,6 +92,7 @@ export function ProductForm({ product, categories }: Props) {
         <div className="flex flex-col gap-2">
           <Label htmlFor="affiliateUrl">쿠팡 제휴 링크</Label>
           <Input
+            ref={affiliateRef}
             id="affiliateUrl"
             name="affiliateUrl"
             type="url"
@@ -63,7 +102,9 @@ export function ProductForm({ product, categories }: Props) {
           />
           <p className="text-xs text-muted-foreground">
             쿠팡 파트너스에서 만든 링크를 넣으세요. 일반 쿠팡 상품 주소를 넣으면 수수료가 적립되지 않습니다.
+            {coupangEnabled && " 일반 쿠팡 주소를 넣고 아래 버튼을 누르면 제휴 링크로 바꿔 줍니다."}
           </p>
+          {coupangEnabled && <DeeplinkButton inputRef={affiliateRef} />}
           <FieldError state={state} name="affiliateUrl" />
         </div>
 

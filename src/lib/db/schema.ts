@@ -91,6 +91,22 @@ export const banners = pgTable("banners", {
   ...timestamps,
 });
 
+/**
+ * 쿠팡 파트너스 API 호출 기록.
+ * 시간당 호출 한도를 넘으면 쿠팡이 계정을 정지하므로, 호출 전에 최근 1시간 호출 수를 확인한다.
+ */
+export const coupangApiCalls = pgTable(
+  "coupang_api_calls",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    endpoint: varchar("endpoint", { length: 40 }).notNull(),
+    calledAt: timestamp("called_at", { withTimezone: true }).notNull().defaultNow(),
+    success: boolean("success").notNull(),
+    error: text("error"),
+  },
+  (t) => [index("coupang_api_calls_called_idx").on(t.calledAt)],
+);
+
 export const adminUsers = pgTable(
   "admin_users",
   {

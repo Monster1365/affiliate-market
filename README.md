@@ -53,6 +53,7 @@ cp .env.example .env.local
 | `AUTH_TRUST_HOST` | 로컬에서 `npm start`(프로덕션 모드)로 실행할 때만 `true`. Vercel에서는 필요 없음 |
 | `COUPANG_ACCESS_KEY` | 쿠팡 파트너스 API Access Key (없으면 수동 등록만 사용) |
 | `COUPANG_SECRET_KEY` | 쿠팡 파트너스 API Secret Key |
+| `COUPANG_SUB_ID` | (선택) 쿠팡 파트너스에 등록한 채널 ID. 넣으면 채널별 실적을 구분할 수 있음 |
 
 ### 3. DB 준비
 
@@ -122,6 +123,7 @@ scripts/                 시드·관리자 생성 스크립트
 | `click_logs` | 구매 버튼 클릭 기록 |
 | `banners` | 홈 배너 |
 | `admin_users` | 관리자 계정 (비밀번호는 bcrypt 해시) |
+| `coupang_api_calls` | 쿠팡 API 호출 기록 (시간당 호출 한도 관리용) |
 
 스키마를 바꿀 때는 `src/lib/db/schema.ts`를 수정한 뒤 `npm run db:generate` → `npm run db:migrate` 순서로 실행합니다.
 
@@ -148,6 +150,15 @@ scripts/                 시드·관리자 생성 스크립트
 - 로그인 실패 시 이메일이 틀렸는지 비밀번호가 틀렸는지 구분하지 않습니다 (응답 시간도 같게 맞춤).
 - 로그인 후 이동 경로는 `/admin` 하위만 허용합니다 (외부 사이트로의 리다이렉트 방지).
 - 세션 유효 시간은 8시간입니다 (`src/lib/auth.config.ts`).
+
+### 쿠팡 파트너스 API (`src/lib/coupang.ts`)
+- **상품 가져오기** (`/admin/products/import`): 키워드로 검색(최대 10개) → 골라서 저장. 쿠팡 상품 ID가 같으면 새로 만들지 않고 이름·가격·이미지·링크만 갱신하며, 노출 여부·카테고리·정가 등 관리자가 바꾼 설정은 유지합니다.
+- **제휴 링크 변환**: 상품 등록 폼에서 일반 쿠팡 주소를 파트너스 링크로 바꿉니다 (딥링크 API).
+- **호출 한도**: 쿠팡은 시간당 약 30회를 넘으면 계정을 24시간 정지한다고 알려져 있습니다. 그래서 모든 호출을 `coupang_api_calls`에 기록하고 **1시간 20회**를 넘으면 호출하지 않습니다 (`HOURLY_LIMIT`).
+- 검색 결과에는 정가가 없어 할인율이 비어 있습니다. 필요하면 상품 수정에서 정가를 넣으세요.
+- 엔드포인트 경로는 공개 SDK 기준입니다. 키를 받은 뒤 쿠팡 파트너스 → 도움말 → Open API 문서와 한 번 대조하세요.
+- 키가 없으면 가져오기 화면에 설정 안내가 나오고, 직접 등록만 사용할 수 있습니다.
+- 테스트용으로 `COUPANG_API_BASE_URL`을 지정하면 다른 주소(모의 서버 등)로 요청을 보냅니다. 운영에서는 설정하지 마세요.
 
 ### 쿠팡 파트너스 정책
 - 모든 페이지 하단과 상품 상세에 수수료 고지문이 표시됩니다 (`src/components/shop/affiliate-disclosure.tsx`).
@@ -185,6 +196,6 @@ DELETE FROM products WHERE coupang_product_id LIKE 'sample-%';
 - [x] 3단계: 사용자 페이지, 클릭 추적
 - [x] 4단계: 관리자 로그인
 - [x] 5단계: 관리자 상품·카테고리·배너 관리
-- [ ] 6단계: 쿠팡 파트너스 API 연동
+- [x] 6단계: 쿠팡 파트너스 API 연동 (실제 키로는 아직 검증 전)
 - [ ] 7단계: 대시보드, SEO (sitemap, JSON-LD)
 - [ ] 8단계: 배포 마무리
