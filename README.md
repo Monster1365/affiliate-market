@@ -126,7 +126,33 @@ scripts/                 시드·관리자 생성 스크립트
 | `admin_users` | 관리자 계정 (비밀번호는 bcrypt 해시) |
 | `coupang_api_calls` | 쿠팡 API 호출 기록 (시간당 호출 한도 관리용) |
 
-스키마를 바꿀 때는 `src/lib/db/schema.ts`를 수정한 뒤 `npm run db:generate` → `npm run db:migrate` 순서로 실행합니다.
+### DB 환경 (Neon 브랜치)
+
+| 환경 | Neon 브랜치 | 설정 위치 |
+|---|---|---|
+| 로컬 개발 | `dev` | `.env.local`의 `DATABASE_URL` |
+| Vercel 미리보기 (`develop` 등) | `dev` | Vercel 환경변수 (Preview) |
+| Vercel 운영 (`main`) | `main` (운영 DB) | Vercel 환경변수 (Production) |
+
+로컬과 미리보기에서 무엇을 하든 운영 데이터에는 영향이 없습니다.
+`dev` 브랜치를 운영 데이터로 다시 맞추고 싶으면 Neon 콘솔에서 `dev` 브랜치의 **Reset from parent**를 실행하세요 (dev의 변경 내용은 사라집니다).
+
+### 스키마 변경 순서
+
+1. `src/lib/db/schema.ts` 수정
+2. `npm run db:generate` (마이그레이션 SQL 생성, git에 커밋)
+3. `npm run db:migrate` → **dev 브랜치**에 적용하고 로컬에서 확인
+4. 운영 반영 전에 운영 DB에도 적용:
+   ```bash
+   DATABASE_URL="<운영 DB 주소>" npm run db:migrate
+   ```
+   운영 주소는 `.env.local`에 주석(`DATABASE_URL_PRODUCTION`)으로 남겨 두었습니다. 명령 앞에 붙인 값이 `.env.local`보다 우선합니다.
+5. 그다음 `main`에 merge·push해서 배포
+
+운영 관리자 계정 비밀번호를 바꿀 때도 같은 방식으로 운영 DB를 지정합니다:
+```bash
+DATABASE_URL="<운영 DB 주소>" npm run admin:create -- 이메일 새비밀번호 이름
+```
 
 ## 알아둘 점
 
@@ -187,10 +213,15 @@ DELETE FROM products WHERE coupang_product_id LIKE 'sample-%';
 ## 배포 (Vercel)
 
 1. Vercel에서 GitHub 저장소를 연결합니다. `main` = 운영, 그 외 브랜치 = 미리보기 배포입니다.
-2. Settings → Environment Variables에 `DATABASE_URL`, `AUTH_SECRET`(, `COUPANG_*`)을 Production·Preview 모두 등록합니다.
+2. Settings → Environment Variables에 `DATABASE_URL`(Production은 운영 DB, Preview는 dev 브랜치), `AUTH_SECRET`(, `COUPANG_*`)을 등록합니다.
    `AUTH_SECRET`이 없으면 관리자 로그인이 동작하지 않습니다. 로컬과 다른 값을 써도 됩니다.
    빌드 중에도 DB를 읽어 페이지를 미리 만들기 때문에 `DATABASE_URL`이 없으면 빌드가 실패합니다.
-3. Settings → Functions → Region을 DB와 같은 싱가포르(`sin1`)로 두면 응답이 빠릅니다.
+3. Settings → Functions → Region은 DB와 같은 싱가포르(`sin1`)입니다.
+4. 환경변수를 바꾸면 **이후 새로 만든 배포부터** 적용됩니다. 바로 적용하려면 Redeploy 하세요.
+
+현재 배포:
+- 운영: https://affiliate-market-eli.vercel.app (`main`)
+- 개발 미리보기: https://dev-affiliate-market-eli.vercel.app (`develop`, Vercel 로그인 필요)
 
 ## 브랜치
 
@@ -206,4 +237,9 @@ DELETE FROM products WHERE coupang_product_id LIKE 'sample-%';
 - [x] 5단계: 관리자 상품·카테고리·배너 관리
 - [x] 6단계: 쿠팡 파트너스 API 연동 (실제 키로는 아직 검증 전)
 - [x] 7단계: 대시보드, SEO (sitemap, JSON-LD)
-- [ ] 8단계: 배포 마무리
+- [x] 8단계: 배포 점검 (리전·환경변수·빌드·런타임 오류·운영 페이지 확인), 개발용 DB 분리
+
+### 운영 시작 전 할 일
+- [ ] 샘플 상품 삭제 또는 실제 상품으로 교체 (`DELETE FROM products WHERE coupang_product_id LIKE 'sample-%';`를 운영 DB에)
+- [ ] 관리자 비밀번호를 강한 비밀번호로 변경
+- [ ] 쿠팡 파트너스 API 키 발급 후 Vercel에 등록하고 실제 검색 1~2회 확인
